@@ -1,7 +1,5 @@
- GNU nano 9.1                        README.md
-The error is **not** coming from the `server.py` I provided.
+Your file (`/data/data/com.termux/files/home/emails/server.py`) contains `import cgi` on line 21. The version I gave you does **not** use `cgi` at all (that module was removed in Python 3.13).
 
-Your file (`/data/data/com.termux/files/home/emails/server.py`) contains `import>
 
 ### Fix
 
@@ -52,9 +50,9 @@ def send_email():
         is_html = request.form.get("is_html", "false") == "true"
 
         if not to_addr:
-            return jsonify({"success": False, "error": "To address is required"}>
+            return jsonify({"success": False, "error": "To address is required"}), 400
         if not subject:
-            return jsonify({"success": False, "error": "Subject is required"}), >
+            return jsonify({"success": False, "error": "Subject is required"}), 400
         if not body:
             return jsonify({"success": False, "error": "Body is required"}), 400
 
@@ -72,9 +70,9 @@ def send_email():
                 if f and f.filename:
                     print(f"Attachment: {f.filename} ({len(f.read())} bytes)")
                     f.seek(0)
-return jsonify({
+            return jsonify({
                 "success": True,
-                "message": "Demo mode: email logged to server console (set SMTP_>
+                "message": "Demo mode: email logged to server console (set SMTP_USER/SMTP_PASSWORD to send for real)"
             })
 
         # Build the message
@@ -126,7 +124,7 @@ return jsonify({
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Email Sender on http://0.0.0.0:{port}")
-    print("Set SMTP_USER, SMTP_PASSWORD (and optionally SMTP_SERVER, SMTP_PORT, >
+    print("Set SMTP_USER, SMTP_PASSWORD (and optionally SMTP_SERVER, SMTP_PORT, FROM_EMAIL) to enable real sending.")
     app.run(host="0.0.0.0", port=port, debug=True)
 ```
 
@@ -139,7 +137,7 @@ Make sure Flask is installed:
 pip install flask
 ```
 
-Also make sure you have the `templates/index.html` file in the same folder struc>
+Also make sure you have the `templates/index.html` file in the same folder structure:
 
 ```
 emails/
@@ -171,10 +169,10 @@ Example: `yourname@gmail.com`
 
 2. Click **Security** on the left.
 
-3. Under “How you sign in to Google”, make sure **2-Step Verification** is turne>
+3. Under “How you sign in to Google”, make sure **2-Step Verification** is turned **ON**.
    (You must have 2-Step Verification enabled to create App Passwords.)
 
-4. After 2-Step Verification is on, go back to the Security page and click **App>
+4. After 2-Step Verification is on, go back to the Security page and click **App passwords**.
 
 5. Select:
    - App → **Mail**
@@ -186,6 +184,7 @@ Example: `yourname@gmail.com`
    `abcd efgh ijkl mnop`
 
 Copy that password (without spaces is fine) — this is your `SMTP_PASSWORD`.
+
 ---
 
 ### 2. Set the environment variables
@@ -211,37 +210,37 @@ python server.py
 | Provider       | SMTP_SERVER              | SMTP_PORT | Notes |
 |----------------|--------------------------|-----------|-------|
 | Gmail          | `smtp.gmail.com`         | 587       | Use App Password |
-| Outlook / Hotmail | `smtp.office365.com`  | 587       | Use normal password or>
+| Outlook / Hotmail | `smtp.office365.com`  | 587       | Use normal password or App Password |
 | Yahoo          | `smtp.mail.yahoo.com`    | 587       | Need App Password |
-| Custom / cPanel| Your host’s SMTP server  | 587 or 465| Ask your hosting provi>
+| Custom / cPanel| Your host’s SMTP server  | 587 or 465| Ask your hosting provider |
 
 ---
 
 ### Quick tip
 
-If you just want to test the form without sending real emails, **don’t set** `SM>
+If you just want to test the form without sending real emails, **don’t set** `SMTP_USER` / `SMTP_PASSWORD`. The app will run in **demo mode** and print>
 
 
-________________________________________________________________________________>
+______________________________________________________________________________________________________________
 
 
-To send emails from **`info@registermysite.com`** (instead of a Gmail address), >
+To send emails from **`info@registermysite.com`** (instead of a Gmail address), you need two things:
 
 1. A service that is allowed to send email **as** your domain
-2. Correct DNS records (SPF + DKIM + DMARC) so Gmail/Outlook don’t treat the ema>
+2. Correct DNS records (SPF + DKIM + DMARC) so Gmail/Outlook don’t treat the emails as spam
 
-Here are the best practical options in 2026, ranked by ease for your current Fla>
+Here are the best practical options in 2026, ranked by ease for your current Flask app:
 
 ### 1. Recommended: Resend (easiest & free to start)
 
-Resend is currently one of the best developer experiences and works perfectly wi>
+Resend is currently one of the best developer experiences and works perfectly with the SMTP code you already have.
 
 **Steps:**
 
 1. Go to [https://resend.com](https://resend.com) and create a free account.
 2. Add your domain `registermysite.com`.
 3. Resend will show you a few DNS records (SPF, DKIM, etc.).
-   Add them exactly where you manage DNS for the domain (Cloudflare, Namecheap, >
+   Add them exactly where you manage DNS for the domain (Cloudflare, Namecheap, GoDaddy, etc.).
 4. Wait until the domain shows as **Verified** (usually 5–30 minutes).
 5. Create an **API Key**.
 6. Set these environment variables:
@@ -254,36 +253,65 @@ export SMTP_PASSWORD="re_xxxxxxxxxxxxxxxx"   # your Resend API key
 export FROM_EMAIL="info@registermysite.com"
 ```
 
+Then restart the server:
+
+```bash
+python server.py
+```
+
+That’s it. You can now send from `info@registermysite.com`.
+
+**Free tier:** 3,000 emails/month.
+
+---
+
+### 2. Cloudflare Email Sending (if your domain is already on Cloudflare)
+
+Cloudflare now has a native Email Sending product.
+
+1. In the Cloudflare dashboard go to **Compute → Email Service → Email Sending**.
+2. Onboard the domain `registermysite.com` (Cloudflare can add the required DNS records for you).
+3. Create an API token with Email Sending permission.
+4. Use these settings:
+
+```bash
+export SMTP_SERVER="smtp.mx.cloudflare.net"
+export SMTP_PORT="465"
+export SMTP_USER="api_token"          # or the value Cloudflare shows
+export SMTP_PASSWORD="your-cloudflare-api-token"
+export FROM_EMAIL="info@registermysite.com"
+```
+
 ---
 
 ### 3. Other good options
 
-| Service          | Best for                  | Free tier          | SMTP ready>
-|------------------|---------------------------|--------------------|----------->
-| **Resend**       | Developers, simple setup  | 3,000/month        | Yes       >
-| **Postmark**     | Highest deliverability    | 100/month          | Yes       >
-| **SendGrid**     | Marketing + transactional | 100/day            | Yes       >
-| **Amazon SES**   | Cheapest at high volume   | Very cheap         | Yes       >
-| **Brevo**        | Budget all-in-one         | 300/day            | Yes       >
-| Google Workspace | Real mailboxes            | Paid (~$6/user)    | Yes       >
+| Service          | Best for                  | Free tier          | SMTP ready |
+|------------------|---------------------------|--------------------|------------|
+| **Resend**       | Developers, simple setup  | 3,000/month        | Yes        |
+| **Postmark**     | Highest deliverability    | 100/month          | Yes        |
+| **SendGrid**     | Marketing + transactional | 100/day            | Yes        |
+| **Amazon SES**   | Cheapest at high volume   | Very cheap         | Yes        |
+| **Brevo**        | Budget all-in-one         | 300/day            | Yes        |
+| Google Workspace | Real mailboxes            | Paid (~$6/user)    | Yes        |
 
 ---
 
 ### Important notes
 
-- You **cannot** just invent `info@registermysite.com` and send it through Gmail>
-- Always verify the domain (SPF + DKIM) — every service above walks you through >
-- For best deliverability, many people send from a subdomain such as `mail.regis>
+- You **cannot** just invent `info@registermysite.com` and send it through Gmail — Google will block it or mark it as spam.
+- Always verify the domain (SPF + DKIM) — every service above walks you through it.
+- For best deliverability, many people send from a subdomain such as `mail.registermysite.com` or `info.registermysite.com`, but the root domain also w>
 
 ---
 
 **Quick recommendation:**
-Start with **Resend**. It’s the fastest way to go from “works with Gmail” to “se>
+Start with **Resend**. It’s the fastest way to go from “works with Gmail” to “sends as `info@registermysite.com`” with almost no code changes.
 
-Would you like me to also show you the exact DNS records you’ll need, or help yo>
-________________________________________________________________________________>
+Would you like me to also show you the exact DNS records you’ll need, or help you modify the Flask code to use Resend’s HTTP API instead of SMTP?
+_______________________________________________________________________________________________________________________________________________________>
 
-The error `Connection unexpectedly closed` is almost always caused by using the >
+The error `Connection unexpectedly closed` is almost always caused by using the **wrong SSL method** for Cloudflare.
 
 ### The problem
 
@@ -368,9 +396,55 @@ import ssl
 
 ---
 
+
+---
+
+### Correct environment variables for Cloudflare
+
+```bash
+export SMTP_SERVER="smtp.mx.cloudflare.net"
+export SMTP_PORT="465"
+export SMTP_USER="api_token"
+export SMTP_PASSWORD="your-cloudflare-api-token"
+export FROM_EMAIL="info@registermysite.com"
+```
+
+---
+
+---
+
 After making the change:
 
 1. Save the file
 2. Restart the server (`Ctrl+C` then `python server.py`)
 3. Try sending an email!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
