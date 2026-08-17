@@ -418,33 +418,3 @@ After making the change:
 1. Save the file
 2. Restart the server (`Ctrl+C` then `python server.py`)
 3. Try sending an email!
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
