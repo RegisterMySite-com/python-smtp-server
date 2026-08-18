@@ -22,7 +22,7 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max upload
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.mx.cloudflare.net")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
 SMTP_USER = os.environ.get("SMTP_USER", "api_token")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "cfut_PJCVt8TjEsw4vxHkqGfubzZvJ6>
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "cf_api-token>
 FROM_EMAIL = os.environ.get("FROM_EMAIL", "info@registermysite.com")
 
 
